@@ -175,6 +175,7 @@ def main():
         nargs=1,
         help='Search for a software using'
         + ' the same package name for all distros.'
+        + ' This is different from "-p" because you can try any search term.'
         + ' This ignores the fact that software can have different names'
         + ' in different distros/repositorys.'
         + ' Distros with no result my still have the package but under a'
