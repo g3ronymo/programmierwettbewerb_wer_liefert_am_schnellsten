@@ -133,6 +133,19 @@ class PackageFlatPackFlatHub(Package):
             year = match.group(3).decode()
             self.last_updated = year + '-' + month + '-' + day
 
+
+class PackageReptology(Package):
+    def update(self):
+        pass
+
+    def __eq__(self, other):
+        equal = self.name == other.name
+        equal = equal and (self.version == other.version)
+        equal = equal and (self.distro == other.distro)
+        equal = equal and (self.repository == other.repository)
+
+    
+
 def _pprint(packages: list[Package]):
     hline = '-' * (15+15+15+15)
     print('{:<15}{:<15}{:<15}{:<15}'.format(
@@ -181,6 +194,11 @@ def main():
         + ' Distros with no result my still have the package but under a'
         + ' different name.',
     )
+    parser.add_argument(
+        '-r', '--reptology',
+        nargs=1,
+        help='Search for a package using reptology',
+     )
     args = parser.parse_args()
 
 
@@ -204,6 +222,38 @@ def main():
             PackageFedora("stable", args.search[0], distro_release='36'),
             PackageFlatPackFlatHub(args.search[0]),
         ])
+    if args.reptology:
+        packages = []
+        searchterm = args.reptology[0]
+        url = 'https://repology.org/api/v1/projects/?search='
+        url += searchterm
+        url += '&maintainer=&category=&inrepo=&notinrepo=&repos=&families='
+        url += '&repos_newest=&families_newest=&newest=on'
+        package_info = _url_content(url)
+        if package_info is None:
+            return
+        package_info = json.loads(package_info) 
+        for k in package_info.keys():
+            if k == searchterm:
+                for p in package_info[k]:
+                    try:
+                        name = p.get('name')
+                        if name is None:
+                            name = p.get('srcname')
+                        if name is None:
+                            name = p.get('binname')
+                        #if name != searchterm:
+                        #    continue
+                        distro = p['repo']
+                        repository = p.get('subrepo', '')
+                        version = p['version']
+                        package = PackageReptology(repository, name, distro=distro)
+                        package.version = version
+                        if package not in packages:
+                            packages.append(package)
+                    except KeyError:
+                        continue
+        _pprint(packages)
 
     if 'firefox' in selected_packages:
         print("\nFirefox:")
